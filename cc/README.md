@@ -1,133 +1,133 @@
-# cc/
+# 참조/
 
-This directory contains a compositor, used in both the renderer and the
-browser.  In the renderer, Blink is the client.  In the browser, both
-ui and Android browser compositor are the clients.
+이 디렉토리에는 렌더러와
+브라우저. 렌더러에서 Blink는 클라이언트입니다. 브라우저에서는 둘 다
+ui 및 Android 브라우저 합성기는 클라이언트입니다.
 
-The public API of the compositor is LayerTreeHost and Layer and its
-derived types.  Embedders create a LayerTreeHost (single, multithreaded,
-or synchronous) and then attach a tree of Layers to it.
+합성기의 공개 API는 LayerTreeHost 및 Layer이며
+파생된 유형. Embedder는 LayerTreeHost(단일, 다중 스레드,
+또는 동기식) 그런 다음 여기에 레이어 트리를 연결합니다.
 
-When Layers are updated they request a commit, which takes the structure
-of the tree of Layers, the data on each Layer, and the data of its host and
-atomically pushes it all to a tree of LayerImpls and a LayerTreeHostImpl
-and LayerTreeImpl.  The main thread (which owns the tree of Layers
-and the embedder) is blocked during this commit operation.
+레이어가 업데이트되면 구조를 취하는 커밋을 요청합니다.
+레이어 트리, 각 레이어의 데이터, 호스트의 데이터
+모든 것을 LayerImpls 및 LayerTreeHostImpl 트리에 원자적으로 푸시합니다.
+및 LayerTreeImpl. 메인 스레드(레이어 트리를 소유하는
+임베더)는 이 커밋 작업 중에 차단됩니다.
 
-The commit is from the main thread Layer tree to the pending tree in
-multithreaded mode.  The pending tree is a staging tree for
-rasterization.  When enough rasterization has completed for
-invalidations, the pending tree is ready to activate.  Activate is an
-analogous operation to commit, and pushes data from the pending tree to
-the active tree.  The pending tree exists so that all of the updates
-from the main thread can be displayed to the user atomically while
-the previous frame can be scrolled or animated.
+커밋은 메인 스레드 레이어 트리에서 대기 중인 트리로
+다중 스레드 모드. 보류 트리는 다음을 위한 스테이징 트리입니다.
+래스터화. 충분한 래스터화가 완료되면
+무효화, 보류 중인 트리를 활성화할 준비가 되었습니다. 활성화는
+커밋하는 것과 유사한 작업을 수행하고 보류 중인 트리의 데이터를 다음으로 푸시합니다.
+활동적인 나무. 보류 중인 트리가 존재하므로 모든 업데이트가
+메인 스레드에서 사용자에게 원자적으로 표시될 수 있는 동안
+이전 프레임을 스크롤하거나 애니메이션할 수 있습니다.
 
-The single threaded compositor commits directly to the active
-tree and then stops drawing until the content is ready to be drawn.
+단일 스레드 합성기는 활성
+콘텐츠를 그릴 준비가 될 때까지 그리기를 중지합니다.
 
-The active tree is responsible for drawing.  The Scheduler and its
-SchedulerStateMachine decide when to draw (along with when to commit,
-etc etc).  "Drawing" in a compositor consists of LayerImpl::AppendQuads
-which batches up a set of DrawQuads and RenderPasses into a
-CompositorFrame which is sent via a CompositorFrameSink.
+활성 트리는 그리기를 담당합니다. 스케줄러와 그
+SchedulerStateMachine은 언제 그릴지 결정합니다(커밋할 때와 함께,
+등). 합성기의 "Drawing"은 LayerImpl::AppendQuads로 구성됩니다.
+DrawQuads 및 RenderPass 세트를
+CompositorFrameSink를 통해 전송되는 CompositorFrame입니다.
 
-CompositorFrames from individual compositors are sent to the
-SurfaceManager (which is in the GPU process). The SurfaceAggregator combines all
-CompositorFrames together when asked to by the Display. These are given to the
-viz::DirectRenderer, which finally draws the entire composited browser contents.
-See //components/viz for more details on the display compositor.
+개별 합성기의 CompositorFrames는
+SurfaceManager(GPU 프로세스에 있음). SurfaceAggregator는 모든
+디스플레이에서 요청할 때 CompositorFrames를 함께 사용합니다. 이들은
+viz::DirectRenderer는 최종적으로 전체 합성된 브라우저 콘텐츠를 그립니다.
+디스플레이 합성기에 대한 자세한 내용은 //components/viz를 참조하십시오.
 
-Design documents for the graphics stack can be found at
+그래픽 스택에 대한 설계 문서는 다음에서 찾을 수 있습니다.
 [chromium-graphics](https://www.chromium.org/developers/design-documents/chromium-graphics).
 
-## Other Docs
+## 기타 문서
 
-* [How cc Works](../docs/how_cc_works.md)
+* [cc 작동 원리](../docs/how_cc_works.md)
 
-## Glossaries
+## 용어집
 
-### Active CompositorFrame
+### 활성 합성 프레임
 
-### Active Tree
-The set of layers and property trees that was/will be used to submit a
-CompositorFrame from the layer compositor. Composited effects such as scrolling,
-pinch, and animations are done by modifying the active tree, which allows for
-producing and submitting a new CompositorFrame.
+### 활성 트리
+제출에 사용되었거나 사용될 레이어 및 속성 트리 세트
+레이어 합성기의 CompositorFrame. 스크롤과 같은 합성 효과,
+핀치 및 애니메이션은 활성 트리를 수정하여 수행됩니다.
+새로운 CompositorFrame을 생성하고 제출합니다.
 
-### CompositorFrame
-A set of RenderPasses (which are a list of DrawQuads) along with metadata.
-Conceptually this is the instructions (transforms, texture ids, etc) for how to
-draw an entire scene which will be presented in a surface.
+### 합성 프레임
+메타데이터와 함께 RenderPass(DrawQuads 목록) 집합입니다.
+개념적으로 이것은 다음을 수행하는 방법에 대한 지침(변환, 텍스처 ID 등)입니다.
+표면에 표시될 전체 장면을 그립니다.
 
-### CopyOutputRequest (or Copy Request)
-A request for a texture (or bitmap) copy of some part of the compositor's
-output. Such requests force the compositor to use a separate RenderPass for the
-content to be copied, which allows it to do the copy operation once the
-RenderPass has been drawn to.
+### CopyOutputRequest(또는 복사 요청)
+합성기의 일부의 텍스처(또는 비트맵) 사본에 대한 요청
+산출. 이러한 요청은 합성기가 별도의 RenderPass를 사용하도록 강제합니다.
+복사할 내용으로 한 번 복사 작업을 수행할 수 있습니다.
+RenderPass가 끌렸습니다.
 
-### ElementID
-Chosen by cc's clients and can be used as a stable identifier across updates.
-For example, blink uses ElementIDs as a stable id for the object (opaque to cc)
-that is responsible for a composited animation. Some additional information in
+### 요소 ID
+cc의 클라이언트가 선택하며 업데이트 전반에 걸쳐 안정적인 식별자로 사용할 수 있습니다.
+예를 들어, 깜박임은 ElementID를 개체의 안정적인 ID로 사용합니다(cc에 불투명).
+합성 애니메이션을 담당합니다. 몇 가지 추가 정보
 [element_id.h](https://codesearch.chromium.org/chromium/src/cc/paint/element_id.h)
 
-### DirectRenderer
-An abstraction that provides an API for the Display to draw a fully-aggregated
-CompositorFrame to a physical output. Subclasses of it provide implementations
-for various backends, currently GL, Skia, or Software. See [viz::DirectRenderer](https://codesearch.chromium.org/chromium/src/components/viz/service/display/direct_renderer.h)
-for details.
+### 다이렉트 렌더러
+디스플레이가 완전히 집계된 그림을 그릴 수 있도록 API를 제공하는 추상화
+CompositorFrame을 물리적 출력으로. 그것의 하위 클래스는 구현을 제공합니다.
+다양한 백엔드용, 현재 GL, Skia 또는 소프트웨어. [viz::DirectRenderer](https://codesearch.chromium.org/chromium/src/components/viz/service/display/direct_renderer.h) 참조
+자세한 내용은.
 
-### Layer
-A conceptual piece of content that can appear on screen and has some known
-position with respect to the viewport.  The Layer class only is used on the
-main thread.  This, along with LayerTreeHost, is the main API for the
-compositor.
+### 층
+화면에 나타날 수 있고 일부 알려진 내용이 있는 개념적 콘텐츠
+뷰포트에 대한 위치. Layer 클래스는
+메인 스레드. 이것은 LayerTreeHost와 함께
+식자공.
 
 ### LayerImpl
-The same as Layer, but on the compositor thread.
+Layer와 동일하지만 합성기 스레드에 있습니다.
 
-### LayerTree
+### 레이어 트리
 
-### Occlusion Culling
-Avoiding work by skipping over things which are not visible due to being
-occluded (hidden from sight by other opaque things in front of them). Most
-commonly refers to skipping drawing (ie culling) of DrawQuads when other
-DrawQuads will be in front and occluding them.
+### 오클루전 컬링
+존재로 인해 보이지 않는 일을 건너 뛰고 일을 피하십시오.
+가려진(그들 앞에 있는 다른 불투명한 것들에 의해 시야에서 숨겨짐). 대부분
+일반적으로 다른 경우 DrawQuads의 그리기(즉, 컬링)를 건너뛰는 것을 말합니다.
+DrawQuads가 앞에 있고 차단합니다.
 
-### Property Trees
+### 속성 나무
 
-See also presentations on [Compositor Property Trees](https://docs.google.com/presentation/d/1V7gCqKR-edNdRDv0bDnJa_uEs6iARAU2h5WhgxHyejQ/preview)
-and [Blink Property Trees](https://docs.google.com/presentation/u/1/d/1ak7YVrJITGXxqQ7tyRbwOuXB1dsLJlfpgC4wP7lykeo/preview).
+[Compositor Property Trees](https://docs.google.com/presentation/d/1V7gCqKR-edNdRDv0bDnJa_uEs6iARAU2h5WhgxHyejQ/preview)에 대한 프레젠테이션도 참조하세요.
+및 [속성 트리 깜박임](https://docs.google.com/presentation/u/1/d/1ak7YVrJITGXxqQ7tyRbwOuXB1dsLJlfpgC4wP7lykeo/preview).
 
-### Display
-A controller class that takes CompositorFrames for each surface and draws them
-to a physical output. See [viz::Display](https://codesearch.chromium.org/chromium/src/components/viz/service/display/display.h)  for details.
+### 표시하다
+각 표면에 대해 CompositorFrames를 가져와 그리는 컨트롤러 클래스
+물리적 출력에. 자세한 내용은 [viz::Display](https://codesearch.chromium.org/chromium/src/components/viz/service/display/display.h)를 참조하세요.
 
-### Draw
-Filling pixels in a physical output (technically could be to an offscreen
-texture), but this is the final output of the display compositor.
+### 그리다
+물리적 출력에서 ​​픽셀 채우기(기술적으로 오프스크린에 있을 수 있음
+텍스처) 그러나 이것은 디스플레이 합성기의 최종 출력입니다.
 
-### DrawQuad
-A unit of work for drawing. Each DrawQuad has its own texture id, transform,
-offset, etc.
+### 드로쿼드
+그리기 작업의 단위. 각 DrawQuad에는 고유한 텍스처 ID, 변형,
+오프셋 등
 
-### Shared Quad State
-A shared set of states used by multiple draw quads. DrawQuads that are linked to
-the same shared quad state will all use the same properties from it, with the
-addition of things found on their individual DrawQuad structures.
+### 공유 쿼드 상태
+여러 그리기 쿼드에서 사용되는 공유 상태 집합입니다. 연결된 DrawQuads
+동일한 공유 쿼드 상태는 모두 동일한 속성을 사용합니다.
+개별 DrawQuad 구조에서 발견되는 항목 추가.
 
-### Render Pass
-A list of DrawQuads which will all be drawn together into the same render target
-(either a texture or physical output). Most times all DrawQuads are part of a
-single RenderPass. Additional RenderPasses are used for effects that require a
-set of DrawQuads to be drawn together into a buffer first, with the effect
-applied then to the buffer instead of each individual DrawQuad.
+### 렌더 패스
+모두 함께 동일한 렌더 대상으로 그려질 DrawQuads 목록
+(텍스처 또는 물리적 출력). 대부분의 경우 모든 DrawQuad는
+단일 렌더패스. 추가 RenderPass는 다음이 필요한 효과에 사용됩니다.
+효과와 함께 먼저 버퍼에 함께 그려질 DrawQuads 세트
+그런 다음 각 개별 DrawQuad 대신 버퍼에 적용됩니다.
 
-### Render Surface
-Synonym for RenderPass now. Historically part of the Layer tree data structures,
-with a 1:1 mapping to RenderPasses. RenderSurfaceImpl is a legacy piece that
-remains.
+### 렌더 표면
+이제 RenderPass의 동의어입니다. 역사적으로 레이어 트리 데이터 구조의 일부,
+RenderPass에 1:1 매핑을 사용합니다. RenderSurfaceImpl은
+유적.
 
 ### Surface
 
@@ -139,65 +139,68 @@ remains.
 
 ### Pending CompositorFrame
 
-### Pending Tree
-The set of layers and property trees that is generated from a main frame (or
-BeginMainFrame, or commit). The pending tree exists to do raster work in the
-layer compositor without clobbering the active tree until it is done. This
-allows the active tree to be used in the meantime.
+### 보류 중인 합성 프레임
 
-### Composite
-To produce a single graphical output from multiple inputs. In practice, the
-layer compositor does raster from recordings and manages memory, performs
-composited effects such as scrolling, pinch, animations, producing a
-CompositorFrame. The display compositor does an actual "composite" to draw the
-final output into a single physical output.
+### 보류 중인 트리
+메인 프레임(또는
+BeginMainFrame 또는 커밋). 보류 중인 트리는 래스터 작업을 수행하기 위해 존재합니다.
+완료될 때까지 활성 트리를 방해하지 않고 레이어 합성기를 사용합니다. 이것
+그 동안 활성 트리를 사용할 수 있습니다.
 
-### Invalidation
-Invalidation is a unit of content update.  Any content updates from
-Blink or ui must be accompanied by an invalidation to tell the compositor
-that a piece of content must be rerasterized.  For example, if a 10x10
-div with a background color has its width increased by 5 pixels, then
-there will be a 5x10 invalidation (at least) for the new space covered
-by the larger div.
+### 합성
+여러 입력에서 단일 그래픽 출력을 생성합니다. 실제로,
+레이어 합성기는 기록에서 래스터를 수행하고 메모리를 관리하고 수행합니다.
+스크롤링, 핀치, 애니메이션과 같은 합성 효과
+합성 프레임. 디스플레이 합성기는 실제 "합성"을 수행하여
+최종 출력을 단일 물리적 출력으로 만듭니다.
 
-Ideally, invalidations represent the minimum amount of content that must
-be rerastered from the previous frame.  They are passed to the compositor
-via Layer::SetNeedsDisplay(Rect).  Invalidation is tracked both to
-minimize the amount of raster work needed, but also to allow for
-partial raster of Tiles.  Invalidations also eventually become damage.
+### 무효화
+무효화는 콘텐츠 업데이트의 단위입니다. 모든 콘텐츠 업데이트
+Blink 또는 ui는 합성자에게 알리기 위해 무효화를 동반해야 합니다.
+콘텐츠 조각을 다시 래스터화해야 합니다. 예를 들어 10x10
+배경색이 있는 div의 너비는 5픽셀만큼 증가한 다음
+적용되는 새 공간에 대해 5x10 무효화(최소한)가 있습니다.
+더 큰 div에 의해
 
-### Damage
-Damage is the equivalent of invalidation, but for the final display.
-As invalidation is the difference between two frames worth of content,
-damage is the difference between two CompositorFrames.  Damage is
-tracked via the DamageTracker.  This allows for partial swap, where
-only the parts of the final CompositorFrame that touch the screen
-are drawn, and only that drawn portion is swapped, which saves quite
-a bit of power for small bits of damage.
+이상적으로 무효화는
+이전 프레임에서 다시 래스터됩니다. 그것들은 합성기에 전달된다
+Layer::SetNeedsDisplay(Rect)를 통해. 무효화는 다음과 같이 추적됩니다.
+필요한 래스터 작업의 양을 최소화할 뿐만 아니라
+타일의 부분 래스터. 무효화도 결국 손상이 됩니다.
 
-Invalidation creates damage, in that if a piece of content updates, then
-that content invalidation creates damage on screen.  Other things that
-cause damage are analogous operations to invalidations, but on Layers.
-For example, moving a Layer around, changing properties of Layers (e.g.
-opacity), and adding/removing/reordering Layers will all create damage
-(aka screen updates) but do not create invalidations (aka raster work).
+### 손상
+손상은 무효화와 동일하지만 최종 표시용입니다.
+무효화는 콘텐츠의 두 프레임 가치의 차이이므로,
+손상은 두 CompositorFrame 간의 차이입니다. 손상은
+DamageTracker를 통해 추적됩니다. 이것은 부분 스왑을 허용합니다.
+화면을 터치하는 최종 CompositorFrame 부분만
+그려지고 그 그려진 부분만 교체되어 상당히 절약됩니다.
+작은 피해에 대한 약간의 힘.
 
-### Tiles
-An abstraction of a piece of content of a Layer.  A tile may be
-rasterized or not.  It may be known to be a solid color or not.
-A PictureLayerImpl indirectly owns a sparse set of Tiles to
-represent its rasterizable content.  When tiles are invalidated,
-they are replaced with new tiles.
+무효화는 콘텐츠의 일부가 업데이트되면 피해를 발생시킵니다.
+콘텐츠 무효화는 화면에 손상을 줍니다. 다른 것들
+원인 손상은 무효화와 유사한 작업이지만 레이어에 있습니다.
+예를 들어 레이어 이동, 레이어 속성 변경(예:
+불투명도), 레이어를 추가/제거/재정렬하면 모두 손상됩니다.
+(일명 화면 업데이트) 하지만 무효화를 생성하지 않습니다(일명 래스터 작업).
 
-### Prepare Tiles
-Prioritize and schedule needed tiles for raster. This is the entry point to a
-system that converts painting (raster sources / recording sources) into
-rasterized resources that live on tiles. This also kicks off any dependent image
-decodes for images that need to be decode for the raster to take place.
+### 타일
+레이어 콘텐츠의 추상화입니다. 타일이 될 수 있습니다.
+래스터화 여부. 단색인지 아닌지 알 수 있습니다.
+PictureLayerImpl은 타일의 희소 집합을 간접적으로 소유하여
+래스터화 가능한 콘텐츠를 나타냅니다. 타일이 무효화되면,
+그들은 새로운 타일로 교체됩니다.
 
-### Device Scale Factor
-The scale at which we want to display content on the output device. For very
-high resolution monitors, everything would become too small if just presented
-1:1 with the pixels. So we use a larger number of physical pixels per logical
-pixels. This ratio is the device scale factor. 1 or 2 is the most common on
-ChromeOS. Values between 1 and 2 are common on Windows.
+### 타일 준비
+래스터에 필요한 타일의 우선 순위를 지정하고 일정을 잡습니다. 이것은 진입점이다.
+페인팅(래스터 소스/녹음 소스)을 변환하는 시스템
+타일에 있는 래스터화된 리소스. 이것은 또한 모든 종속 이미지를 시작합니다.
+래스터가 발생하기 위해 디코딩해야 하는 이미지를 디코딩합니다.
+
+### 디바이스 스케일 팩터
+출력 장치에 콘텐츠를 표시하려는 배율입니다. 아주
+고해상도 모니터, 그냥 제시하면 모든 것이 너무 작아집니다
+픽셀과 1:1. 따라서 논리적 당 더 많은 물리적 픽셀을 사용합니다.
+픽셀. 이 비율은 장치 배율입니다. 1 또는 2가 가장 일반적입니다.
+크롬OS. 1과 2 사이의 값은 Windows에서 일반적입니다.
+
